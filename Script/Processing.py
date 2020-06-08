@@ -10,8 +10,8 @@ import rasterio
 from rasterio.mask import mask
 import geopandas as gpd
 import pandas as pd
-from sklearn.utils import shuffle
 
+#%%
 # Given a raster, put the bands into a pandas dataframe.
 def vector_to_df(raster):
     df = pd.DataFrame()
@@ -30,41 +30,16 @@ def shapes_to_dataset(shapepath, rasterpath):
     raster = rasterio.open(rasterpath)
     vector = gpd.read_file(shapepath)
     
-    out_img, _ = mask(raster, vector['geometry'], crop=True)
-    
+    out_img, _ = mask(raster, vector['geometry'], crop=True)    
     df_shp = vector_to_df(out_img)
     
-    df_shp = df_shp[(df_shp['B1'] != 0)]
+    try:        
+        df_shp = df_shp[(df_shp['B1'] != 0)]
+        return df_shp
     
-    return df_shp
-
-
-def add_indices(df):
-    B03 = df['B3']; B08 = df['B8']; B11 = df['B11']; B04 = df['B4'];
-    df['NDWI'] = (B03 - B08)/(B03 + B08)
-    df['MNDWI'] = (B03-B11)/(B03+B11)
-    df['NDVI'] = (B08-B04)/(B08+B04)
-    # ceramic rooftop detection
-    df['NDBI'] = (B11 - B08)/(B11 + B08)
-    
-    return df
-
-def NDWI(df, threshold):
-    B03 = df['B3']
-    B8A = df['B8A']
-    NDWI = (B03-B8A)/(B03+B8A)
-    NDWI_t = [1 if x > threshold else 0 for x in NDWI]
-    return NDWI, NDWI_t
-
-def AWEI(df, threshold):
-    B3 = df['B3']
-    B8 = df['B8']
-    B12 = df['B12']
-    B11 = df['B11']
-    AWEI = 4*(B3-B12)- (0.25*B8 + 2.75*B11)
-    AWEI_t = [1 if x > threshold else 0 for x in AWEI]
-    return AWEI, AWEI_t
-
+    except:        
+        arr = out_img[out_img != 0]       
+        return arr.flatten()
 
 # Given three shapefiles and a GeoTiff files, return a dataframe with 
 # the band values and the class of every pixel belonging to the shapefiles.
@@ -84,13 +59,6 @@ def make_dataset(root, rasterpath):
     fallow = shapes_to_dataset(fallowpath, rasterpath)[bands]
     veg = shapes_to_dataset(vegpath, rasterpath)[bands]
     urban = shapes_to_dataset(urbanpath, rasterpath)[bands]
-       
-#    deep['Content'] = ['Deep']*len(deep)
-#    shallow['Content'] = ['Shallow']*len(shallow)
-#    farmed['Content'] = ['Dry']*len(farmed)
-#    fallow['Content'] = ['Soil']*len(fallow)
-#    veg['Content'] = ['Vegetation']*len(veg)
-#    urban['Content'] = ['Urban']*len(urban)
     
     deep['Content'] = [1]*len(deep)
     shallow['Content'] = [2]*len(shallow)
@@ -102,3 +70,25 @@ def make_dataset(root, rasterpath):
     df = pd.concat([deep, shallow, farmed, fallow, veg, urban])
     
     return df
+
+#%%
+
+# Compute water indices
+    
+def NDWI(df, threshold):
+    B03 = df['B3']
+    B8A = df['B8A']
+    NDWI = (B03-B8A)/(B03+B8A)
+    NDWI_t = [1 if x > threshold else 0 for x in NDWI]
+    return NDWI, NDWI_t
+
+def AWEI(df, threshold):
+    B3 = df['B3']
+    B8 = df['B8']
+    B12 = df['B12']
+    B11 = df['B11']
+    AWEI = 4*(B3-B12)- (0.25*B8 + 2.75*B11)
+    AWEI_t = [1 if x > threshold else 0 for x in AWEI]
+    return AWEI, AWEI_t
+
+
