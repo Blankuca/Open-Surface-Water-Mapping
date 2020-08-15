@@ -267,5 +267,30 @@ def plot_shapefiles(area,date):
     
     
     
-    
+    from matplotlib.colors import LinearSegmentedColormap, to_hex
+
+def colors2cmap(*args, name=None):
+    """Create a colormap from a list of given colors.
+
+    Parameters:
+        *args: Arbitrary number of colors (Named color, HEX or RGB).
+        name (str): Name with which the colormap is registered.
+
+    Returns:
+        LinearSegmentedColormap.
+
+    Examples:
+        >>> colors2cmap('darkorange', 'white', 'darkgreen', name='test')
+    """
+    if len(args) < 2:
+        raise Exception("Give at least two colors.")
+
+    cmap_data = [to_hex(c) for c in args]
+    cmap = LinearSegmentedColormap.from_list(name, cmap_data)
+    plt.register_cmap(name, cmap)
+
+    return cmap 
+
+c = ['dodgerblue', 'paleturquoise', 'peru', 'forestgreen']*6
+colors2cmap(*c, name='awei')
     
